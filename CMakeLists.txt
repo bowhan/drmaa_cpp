@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.0)
+project(drmaa LANGUAGES C CXX VERSION 0.1.0)
+set(CMAKE_CXX_STANDARD 11)
+
+
+set(DRMAA_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+set(DRMAA_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(DRMAA_TEST_DIR ${CMAKE_SOURCE_DIR}/tests)
+
+add_subdirectory(${DRMAA_SOURCE_DIR})
+add_subdirectory(${DRMAA_TEST_DIR})
