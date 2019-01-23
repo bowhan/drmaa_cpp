@@ -4,13 +4,12 @@
 #include <chrono>
 #include <thread>
 
-#ifndef MAX_TRIAL_FOR_NEW_WORKER
-#define MAX_TRIAL_FOR_NEW_WORKER 3
+#ifndef MAX_TOTAL_WAIT_MIN
+#define MAX_TOTAL_WAIT_MIN (3*24*24*60) /* 3 days */
 #endif
 
-/* 12 is the average time for a new EC2 instance to be created & become available in the cluster */
 #ifndef WAIT_INTERVAL_MIN
-#define WAIT_INTERVAL_MIN 5
+#define WAIT_INTERVAL_MIN 1
 #endif
 
 namespace Drmaa {
@@ -249,30 +248,30 @@ bool DrmaaJob::Wait() {
         fprintf(stderr, "[%s] Unknown drmaa_job_ps: %d\n", job_name_.c_str(), remote_ps);
         return false;
     }
-
-    // wait until new instance has been added to the queue
-    /* TODO(bowhan): seems drmaa_wait never works if the job was not submitted in the same session */
-    for (int trial = 0; DRMAA_ERRNO_INVALID_JOB == wait_status && trial < MAX_TRIAL_FOR_NEW_WORKER; ++trial) {
-        /* wait for WAIT_INTERVAL_MIN */
-        for (int waited = 0; waited < WAIT_INTERVAL_MIN; ++waited) {
-            fprintf(stderr
-                    , "\r[%s] Trial %d/%d: waiting for another %3d min"
-                    , job_name_.c_str()
-                    , trial + 1
-                    , MAX_TRIAL_FOR_NEW_WORKER
-                    , WAIT_INTERVAL_MIN - waited);
-            std::this_thread::sleep_for(std::chrono::minutes(1));
+    int waited = 0;
+    if (DRMAA_ERRNO_INVALID_JOB == wait_status) {
+        // this happens when the job was submitted when there was no worker in the queue (i.e., AWS cfncluster)
+        // drmaa_wait never works if the job was not submitted in the same session, so we wait manually here
+        while (waited < MAX_TOTAL_WAIT_MIN &&
+            (DRMAA_PS_QUEUED_ACTIVE == remote_ps || DRMAA_PS_RUNNING == remote_ps)) {
+            for (int j = 0; j < WAIT_INTERVAL_MIN; ++j, ++waited) {
+                fprintf(stderr
+                        , "\r[%s] <%s> have been waiting for %8d min"
+                        , job_name_.c_str()
+                        , waited);
+                std::this_thread::sleep_for(std::chrono::minutes(1));
+            }
+            // check to see if the job is still queued or running, if so, continue to wait until exceeding the limit
+            drmaa_job_ps(job_id_.c_str(), &remote_ps, diagnosis_, sizeof(diagnosis_) - 1);
         }
-        wait_status = drmaa_wait(job_id_.c_str()
-                                 , jobidout
-                                 , sizeof(jobidout) - 1
-                                 , &stat
-                                 , DRMAA_TIMEOUT_WAIT_FOREVER
-                                 , nullptr
-                                 , diagnosis_
-                                 , sizeof(diagnosis_) - 1);
+    }
 
-    } // end of dealing with job submit to queue when there is no worker
+    /* TODO(bowhan): need a better judgement here */
+    if (waited < MAX_TOTAL_WAIT_MIN) {
+        wait_status = DRMAA_ERRNO_SUCCESS;
+    } else {
+        wait_status = DRMAA_ERRNO_INVALID_JOB;
+    }
 
     return DRMAA_ERRNO_SUCCESS == wait_status;
 }
