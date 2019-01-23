@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
         "/home/ubuntu/shared/test/test.sh",  /* job script */
         vector<string>{"argv0", "argv1"},  /* arguments to the script */
         "/home/ubuntu/shared/test",  /* working dir */
-        "all.q", /*queue */
+        "all.q", /* queue */
         1, /* 1 hour */
         1, /* 1 CPU */
         1 /* 1 G of memory*/

@@ -255,14 +255,19 @@ bool DrmaaJob::Wait() {
         while (waited < MAX_TOTAL_WAIT_MIN &&
             (DRMAA_PS_QUEUED_ACTIVE == remote_ps || DRMAA_PS_RUNNING == remote_ps)) {
             for (int j = 0; j < WAIT_INTERVAL_MIN; ++j, ++waited) {
-                fprintf(stderr
+                fprintf(stdout
                         , "\r[%s] <%s> have been waiting for %8d min"
                         , job_name_.c_str()
+                        , DRMAA_PS_QUEUED_ACTIVE == remote_ps ? "DRMAA_PS_QUEUED_ACTIVE" : "DRMAA_PS_RUNNING"
                         , waited);
+                fflush(stdout);
                 std::this_thread::sleep_for(std::chrono::minutes(1));
             }
             // check to see if the job is still queued or running, if so, continue to wait until exceeding the limit
-            drmaa_job_ps(job_id_.c_str(), &remote_ps, diagnosis_, sizeof(diagnosis_) - 1);
+            if (DRMAA_ERRNO_SUCCESS != drmaa_job_ps(job_id_.c_str(), &remote_ps, diagnosis_, sizeof(diagnosis_) - 1)) {
+                /* when job finishes, drmaa_job_ps returns DRMAA_ERRNO_INVALID_JOB */
+                break;
+            }
         }
     }
 
