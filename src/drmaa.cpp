@@ -10,22 +10,29 @@
 
 /* 12 is the average time for a new EC2 instance to be created & become available in the cluster */
 #ifndef WAIT_INTERVAL_MIN
-#define WAIT_INTERVAL_MIN 12
+#define WAIT_INTERVAL_MIN 5
 #endif
 
 namespace Drmaa {
 
-std::once_flag _initialize_flag;
+std::once_flag _initialize_flag, _close_flag;
 
 std::pair<bool, std::string> initialize() {
     char diagnosis[1024];
     int status;
     std::call_once(_initialize_flag, [&]() {
-        status = drmaa_init(NULL, diagnosis, 1024 - 1);
+        status = drmaa_init(nullptr, diagnosis, 1024 - 1);
     });
-
     return std::make_pair(status, diagnosis);
 }
+
+
+void close_session() {
+    std::call_once(_close_flag, []() {
+        drmaa_exit(nullptr, 0);
+    });
+}
+
 
 DrmaaJob::DrmaaJob(const std::string& job_name
                    , const std::string& job_path
@@ -49,18 +56,10 @@ DrmaaJob::DrmaaJob(const std::string& job_name
     , jt_(nullptr)
     , job_id_("") {
 
-    //    char buffer[24];
-    //    const char *job_argv[2];
     int step = 0;
     const char **job_argv = nullptr;
 
-    /* this class should not be responsible for initializing DRMAA API */
-    // if (DRMAA_ERRNO_SUCCESS != drmaa_init(NULL, diagnosis_, sizeof(diagnosis_) - 1)) {
-    //     good_ = false;
-    //     ++step;
-    //     goto end;
-    // }
-
+    /* prepare the job template */
     if (DRMAA_ERRNO_SUCCESS != drmaa_allocate_job_template(&jt_, diagnosis_, sizeof(diagnosis_) - 1)) {
         good_ = false;
         ++step;
@@ -199,8 +198,7 @@ DrmaaJob::DrmaaJob(const std::string& job_name
 }
 
 DrmaaJob::~DrmaaJob() {
-    drmaa_delete_job_template(jt_, NULL, 0);
-    drmaa_exit(diagnosis_, sizeof(diagnosis_) - 1);
+    drmaa_delete_job_template(jt_, nullptr, 0);
 }
 
 
@@ -208,7 +206,7 @@ bool DrmaaJob::Submit() {
     if (!good_) {
         return false;
     }
-    char jobid[100];
+    char jobid[24];
     int sid = drmaa_run_job(jobid, sizeof(jobid) - 1, jt_, diagnosis_, sizeof(diagnosis_) - 1);
     if (DRMAA_ERRNO_SUCCESS == sid) {
         job_id_ = jobid;
@@ -244,7 +242,7 @@ bool DrmaaJob::Wait() {
                                  , sizeof(jobidout) - 1
                                  , &stat
                                  , DRMAA_TIMEOUT_WAIT_FOREVER
-                                 , NULL
+                                 , nullptr
                                  , diagnosis_
                                  , sizeof(diagnosis_) - 1);
     } else {
@@ -253,6 +251,7 @@ bool DrmaaJob::Wait() {
     }
 
     // wait until new instance has been added to the queue
+    /* TODO(bowhan): seems drmaa_wait never works if the job was not submitted in the same session */
     for (int trial = 0; DRMAA_ERRNO_INVALID_JOB == wait_status && trial < MAX_TRIAL_FOR_NEW_WORKER; ++trial) {
         /* wait for WAIT_INTERVAL_MIN */
         for (int waited = 0; waited < WAIT_INTERVAL_MIN; ++waited) {
@@ -269,13 +268,13 @@ bool DrmaaJob::Wait() {
                                  , sizeof(jobidout) - 1
                                  , &stat
                                  , DRMAA_TIMEOUT_WAIT_FOREVER
-                                 , NULL
+                                 , nullptr
                                  , diagnosis_
                                  , sizeof(diagnosis_) - 1);
 
     } // end of dealing with job submit to queue when there is no worker
 
-    return wait_status == DRMAA_ERRNO_SUCCESS;
+    return DRMAA_ERRNO_SUCCESS == wait_status;
 }
 
 } // namespace

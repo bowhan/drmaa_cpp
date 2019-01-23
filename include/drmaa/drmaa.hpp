@@ -9,6 +9,8 @@ namespace Drmaa {
 
 std::pair<bool, std::string> initialize();
 
+void close_session();
+
 class DrmaaJob {
 
 public:
@@ -61,4 +63,4 @@ protected:
     std::vector<std::string> arguments_;
 };
 
-} // end of namespace DrmaaJ
+} // end of namespace Drmaa

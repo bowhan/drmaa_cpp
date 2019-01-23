@@ -48,4 +48,6 @@ int main(int argc, char **argv) {
 
     failed:
     cerr << "diagnosis: " << job.GetDiagnosis() << endl;
+
+    Drmaa::close_session();
 }
