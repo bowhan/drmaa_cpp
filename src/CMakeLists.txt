@@ -10,7 +10,8 @@ target_include_directories(drmaa_cpp
 
 set_target_properties(drmaa_cpp
         PROPERTIES
-        PUBLIC_HEADER ${DRMAA_INCLUDE_DIR}/drmaa/drmaa.h
+        PUBLIC_HEADER
+            "${DRMAA_INCLUDE_DIR}/drmaa/drmaa.h;${DRMAA_INCLUDE_DIR}/drmaa/drmaa.hpp"
         )
 
 target_link_libraries(drmaa_cpp PUBLIC drmaa)
