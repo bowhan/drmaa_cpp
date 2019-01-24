@@ -5,7 +5,7 @@
 #include <thread>
 
 #ifndef MAX_TOTAL_WAIT_MIN
-#define MAX_TOTAL_WAIT_MIN (3*24*24*60) /* 3 days */
+#define MAX_TOTAL_WAIT_MIN (3*24*60) /* 3 days */
 #endif
 
 #ifndef WAIT_INTERVAL_MIN
@@ -265,7 +265,8 @@ bool DrmaaJob::Wait() {
             }
             // check to see if the job is still queued or running, if so, continue to wait until exceeding the limit
             if (DRMAA_ERRNO_SUCCESS != drmaa_job_ps(job_id_.c_str(), &remote_ps, diagnosis_, sizeof(diagnosis_) - 1)) {
-                /* when job finishes, drmaa_job_ps returns DRMAA_ERRNO_INVALID_JOB */
+                /* when job finishes, drmaa_job_ps returns DRMAA_ERRNO_INVALID_JOB,
+                 * remote_ps can still be DRMAA_PS_RUNNING */
                 break;
             }
         }
