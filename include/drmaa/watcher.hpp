@@ -31,7 +31,6 @@ protected:
     std::string job_name_;
     std::string working_dir_;
     std::string job_path_;
-//    std::string job_id_;
     std::string queue_ = "all.q";
     int running_time_hours_ = 24;
     int n_cpus_ = 24;

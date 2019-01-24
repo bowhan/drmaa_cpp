@@ -1,6 +1,6 @@
 add_library(drmaa_cpp SHARED
         drmaa.cpp
-        pipeline.cpp
+        watcher.cpp
         )
 
 target_include_directories(drmaa_cpp
@@ -14,7 +14,7 @@ set_target_properties(drmaa_cpp
         PUBLIC_HEADER
         "${DRMAA_INCLUDE_DIR}/drmaa/drmaa.h;"
         "${DRMAA_INCLUDE_DIR}/drmaa/drmaa.hpp;"
-        "${DRMAA_INCLUDE_DIR}/drmaa/pipeline.hpp"
+        "${DRMAA_INCLUDE_DIR}/drmaa/watcher.hpp"
         )
 
 target_link_libraries(drmaa_cpp PUBLIC drmaa ${CMAKE_THREAD_LIBS_INIT})

@@ -1,7 +1,6 @@
-#include "drmaa/pipeline.hpp"
+#include "drmaa/watcher.hpp"
 #include <thread>
 #include <chrono>
-#include <drmaa/pipeline.hpp>
 
 
 namespace Drmaa {

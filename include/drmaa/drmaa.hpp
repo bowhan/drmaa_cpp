@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drmaa.h"
+#include "drmaa/drmaa.h"
 #include <string>
 #include <vector>
 #include <mutex>

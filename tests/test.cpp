@@ -1,4 +1,4 @@
-#include "drmaa/pipeline.hpp"
+#include "drmaa/watcher.hpp"
 #include <iostream>
 #include <thread>
 
