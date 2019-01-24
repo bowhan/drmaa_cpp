@@ -1,10 +1,41 @@
-#include "drmaa/drmaa.hpp"
+#include "drmaa/pipeline.hpp"
 #include <iostream>
-
+#include <thread>
 
 using namespace std;
 
+once_flag g_dummy_once;
+
+class DummyWatcher
+    : public Drmaa::Watcher {
+public:
+
+    DummyWatcher(const string& name);
+
+    bool RetrieveJob();
+};
+
+
+DummyWatcher::DummyWatcher(const string& name)
+    :
+    Drmaa::Watcher(name) {
+
+}
+
+bool DummyWatcher::RetrieveJob() {
+    bool succ = false;
+    std::call_once(g_dummy_once, [this, &succ]() {
+        this->job_name_ = "test1";
+        this->job_path_ = "/home/ubuntu/shared/test/test.sh";
+        this->arguments_ = vector<string>{"argv0", "argv1"};
+        this->working_dir_ = "/home/ubuntu/shared/test";
+        succ = true;
+    });
+    return succ;
+}
+
 int main(int argc, char **argv) {
+
     // initialization
     auto init_res = Drmaa::initialize();
     if (init_res.first != DRMAA_ERRNO_SUCCESS) {
@@ -13,41 +44,23 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // create job
-    auto job = Drmaa::DrmaaJob(
-        "test1", /* job name */
-        "/home/ubuntu/shared/test/test.sh",  /* job script */
-        vector<string>{"argv0", "argv1"},  /* arguments to the script */
-        "/home/ubuntu/shared/test",  /* working dir */
-        "all.q", /* queue */
-        1, /* 1 hour */
-        1, /* 1 CPU */
-        1 /* 1 G of memory*/
-    );
-    if (!job.IsGood()) {
-        cerr << "failed to create job\n";
-        goto failed;
+    // create jobs
+    vector<thread> workers;
+
+    // add dummy worker
+    workers.emplace_back(DummyWatcher("dummy1"));
+    workers.emplace_back(DummyWatcher("dummy2"));
+    workers.emplace_back(DummyWatcher("dummy3"));
+    workers.emplace_back(DummyWatcher("dummy4"));
+    workers.emplace_back(DummyWatcher("dummy5"));
+
+    // wait forever
+    for (auto& thread: workers) {
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
 
-    // submit job
-    if (job.Submit()) {
-        cerr << job.GetJobId() << " has been submitted; now waiting for it to finish" << endl;
-    } else {
-        cerr << ";" << endl;
-        goto failed;
-    }
-
-    // wait for job to finish
-    if (job.Wait()) {
-        cerr << "job finished successfully!\n";
-    } else {
-        cerr << "job failed\n";
-        goto failed;
-    }
-    return 0;
-
-    failed:
-    cerr << "diagnosis: " << job.GetDiagnosis() << endl;
-
+    // close session
     Drmaa::close_session();
 }

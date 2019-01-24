@@ -83,7 +83,7 @@ DrmaaJob::DrmaaJob(const std::string& job_name
 
     /* job arguments */
     if (!arguments_.empty()) {
-        job_argv = (const char **) malloc(sizeof(char *) * arguments_.size());
+        job_argv = (const char **) malloc(sizeof(char *) * (1 + arguments_.size()));
         if (job_argv == nullptr) {
             good_ = false;
             ++step;
@@ -92,6 +92,7 @@ DrmaaJob::DrmaaJob(const std::string& job_name
         for (int i = 0; i < arguments_.size(); ++i) {
             job_argv[i] = strdup(arguments_[i].c_str());
         }
+        job_argv[arguments_.size()] = nullptr;
         if (DRMAA_ERRNO_SUCCESS
             != drmaa_set_vector_attribute(jt_, DRMAA_V_ARGV, job_argv, diagnosis_, sizeof(diagnosis_) - 1)) {
             good_ = false;
@@ -256,7 +257,7 @@ bool DrmaaJob::Wait() {
             (DRMAA_PS_QUEUED_ACTIVE == remote_ps || DRMAA_PS_RUNNING == remote_ps)) {
             for (int j = 0; j < WAIT_INTERVAL_MIN; ++j, ++waited) {
                 fprintf(stdout
-                        , "\r[%s] <%s> have been waiting for %8d min"
+                        , "\r[%s] status: %30s; have been waiting for %8d min"
                         , job_name_.c_str()
                         , DRMAA_PS_QUEUED_ACTIVE == remote_ps ? "DRMAA_PS_QUEUED_ACTIVE" : "DRMAA_PS_RUNNING"
                         , waited);
