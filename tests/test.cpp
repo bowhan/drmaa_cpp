@@ -1,4 +1,5 @@
 #include "drmaa/watcher.hpp"
+#include "signal.h"
 #include <iostream>
 #include <thread>
 
@@ -34,6 +35,12 @@ bool DummyWatcher::RetrieveJob() {
     return succ;
 }
 
+void ctrl_c_handler(int s) {
+    fprintf(stderr, "!! [main] caught signal %d, clean up and exit...\n", s);
+    Drmaa::close_session();
+    exit(1);
+}
+
 int main(int argc, char **argv) {
 
     // initialization
@@ -54,6 +61,13 @@ int main(int argc, char **argv) {
     workers.emplace_back(DummyWatcher("dummy4"));
     workers.emplace_back(DummyWatcher("dummy5"));
 
+    // prepare for exit signal
+    struct sigaction sig_handler;
+    sig_handler.sa_handler = &ctrl_c_handler;
+    sigemptyset(&sig_handler.sa_mask);
+    sig_handler.sa_flags = 0;
+    sigaction(SIGINT, &sig_handler, nullptr);
+
     // wait forever
     for (auto& thread: workers) {
         if (thread.joinable()) {
@@ -61,6 +75,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    // close session
-    Drmaa::close_session();
+
+    return 0;
 }
