@@ -17,7 +17,7 @@ public:
 
     Watcher& operator=(const Watcher&) = delete;
 
-    Watcher& operator=(Watcher&&);
+    Watcher& operator=(Watcher&&) noexcept;
 
     virtual bool RetrieveJob() = 0;
 

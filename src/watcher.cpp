@@ -26,7 +26,7 @@ Watcher::Watcher(Watcher&& other)
     other.job_ = nullptr;
 }
 
-Watcher& Watcher::operator=(Watcher&& other) {
+Watcher& Watcher::operator=(Watcher&& other) noexcept {
     if (this != &other) {
         delete job_;
         job_ = other.job_;
